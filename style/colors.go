@@ -4,16 +4,16 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-const white = lipgloss.Color("#ffffff")
-const green = lipgloss.Color("#06d6a0")
-const red = lipgloss.Color("#ef476f")
+const white = lipgloss.Color("#dddddd")
+const green = lipgloss.Color("#accca4")
+const red = lipgloss.Color("#bf9ac1")
 
 var normalStyle = lipgloss.NewStyle()
 var boldStyle = lipgloss.NewStyle().Bold(true)
 
 var textStyle = boldStyle.Foreground(white)
 var correctStyle = boldStyle.Foreground(green)
-var incorrectStyle = boldStyle.Foreground(red)
+var incorrectStyle = boldStyle.Foreground(red).Underline(true)
 var selectorStyle = normalStyle.Foreground(green)
 
 func Text(text string) string {
