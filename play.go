@@ -91,14 +91,14 @@ func (p *PlayHandler) Messenger(msg tea.Msg) Action {
 	return None
 }
 
+// Returns a string joining all the words to bo written.
 func (p *PlayHandler) renderWords() string {
 	if p.isFinished() {
 		return ""
 	}
 
-	if !p.isEmptyInput() {
-		p.wordsToRender = p.updatedWords()
-	}
+	// Update the status of the current word being typed depending on the input.
+	p.wordsToRender[p.currentWord] = p.currentWordStatus()
 
 	return strings.Join(p.wordsToRender, " ")
 }
@@ -111,27 +111,8 @@ func (p PlayHandler) isEmptyInput() bool {
 	return len(p.textInput.Value()) == 0
 }
 
-// Update the status of the words to render.
-func (p *PlayHandler) updatedWords() []string {
-	updatedWords := make([]string, len(p.wordsToRender))
-
-	// Add first words.
-	for i := 0; i < p.currentWord; i++ {
-		updatedWords[i] = p.wordsToRender[i]
-	}
-
-	// Update the status of the current word.
-	updatedWords[p.currentWord] = p.currentWordStatus()
-
-	// Add the remaining words.
-	for i := p.currentWord + 1; i < len(p.words); i++ {
-		updatedWords[i] = p.wordsToRender[i]
-	}
-
-	return updatedWords
-}
-
 // Styles the current word depending on the user input.
+// Returns the word styled.
 func (p PlayHandler) currentWordStatus() string {
 	input := p.textInput.Value()
 	current := p.words[p.currentWord]
