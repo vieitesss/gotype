@@ -16,3 +16,4 @@ This is a terminal app that lets you to practice your typing.
     - Save user data locally.
 - Show results.
 - Allow to restart the game.
+- Add tests
