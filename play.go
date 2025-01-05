@@ -21,7 +21,6 @@ type PlayHandler struct {
 	words         []string
 	wordsToRender []string
 	currentWord   int
-	typed         string
 	cmd           tea.Cmd
 }
 
@@ -71,9 +70,19 @@ func (p *PlayHandler) Messenger(msg tea.Msg) Action {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC, tea.KeyEsc:
-			return ToQuit
+			// TODO: handle timer and anything needed,
+			//       may ask for confirmation
+			return ToStart
 		case tea.KeySpace:
-			p.typed = strings.TrimSpace(p.textInput.Value())
+			// Update the current word to remove the cursor.
+			input := p.textInput.Value()
+			word := p.words[p.currentWord]
+			toRender := p.textStatus(input)
+			if len(input) < len(word) {
+				toRender += style.Text(word[len(input):])
+			}
+			p.wordsToRender[p.currentWord] = toRender
+
 			p.currentWord++
 			p.textInput.Reset()
 
@@ -91,14 +100,27 @@ func (p *PlayHandler) Messenger(msg tea.Msg) Action {
 	return None
 }
 
-// Returns a string joining all the words to bo written.
+// Returns a string joining all the words to be written.
 func (p *PlayHandler) renderWords() string {
 	if p.isFinished() {
 		return ""
 	}
 
-	// Update the status of the current word being typed depending on the input.
-	p.wordsToRender[p.currentWord] = p.currentWordStatus()
+	// Get the status of the input.
+	input := p.textInput.Value()
+	word := p.words[p.currentWord]
+	toRender := p.textStatus(input)
+
+	// Add cursor and remaining chars if needed.
+	if len(input) < len(word) {
+		toRender += style.CurrentChar(string(word[len(input)]))
+		if len(input) < len(word)+1 {
+			toRender += style.Text(word[len(input)+1:])
+		}
+	}
+
+	// Update the word to render.
+	p.wordsToRender[p.currentWord] = toRender
 
 	return strings.Join(p.wordsToRender, " ")
 }
@@ -111,26 +133,25 @@ func (p PlayHandler) isEmptyInput() bool {
 	return len(p.textInput.Value()) == 0
 }
 
-// Styles the current word depending on the user input.
-// Returns the word styled.
-func (p PlayHandler) currentWordStatus() string {
-	input := p.textInput.Value()
+// Styles the provided text depending on the user input.
+// Returns the text styled.
+func (p PlayHandler) textStatus(text string) string {
 	current := p.words[p.currentWord]
-	chars := min(len(input), len(current))
+	chars := min(len(text), len(current))
 	result := ""
 
+	// Print already written chars
 	for i := 0; i < chars; i++ {
-		if current[i] == input[i] {
+		if text[i] == current[i] {
 			result += style.Correct(string(current[i]))
 		} else {
 			result += style.Incorrect(string(current[i]))
 		}
 	}
 
-	if len(input) < len(current) {
-		result += style.Text(current[chars:])
-	} else if len(input) > len(current) {
-		result += style.Incorrect(input[len(current):])
+	// Print the excess chars, if there are any.
+	if len(text) > len(current) {
+		result += style.Incorrect(text[len(current):])
 	}
 
 	return result
