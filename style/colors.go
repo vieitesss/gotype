@@ -31,3 +31,7 @@ func Correct(text string) string {
 func Incorrect(text string) string {
 	return incorrectStyle.Render(text)
 }
+
+func CurrentChar(text string) string {
+	return textStyle.UnderlineSpaces(true).Underline(true).Render(text)
+}
