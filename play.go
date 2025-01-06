@@ -98,22 +98,15 @@ func (p *PlayHandler) Messenger(msg tea.Msg) Action {
 
 // Returns a string joining all the words to be written.
 func (p *PlayHandler) renderWords() string {
-	if p.isFinished() {
-		return ""
+	if !p.isFinished() {
+		p.wordsToRender[p.currentWord] = p.currentWordRender(true)
 	}
-
-	// Update the word to render.
-	p.wordsToRender[p.currentWord] = p.currentWordRender(true)
 
 	return strings.Join(p.wordsToRender, " ")
 }
 
 func (p PlayHandler) isFinished() bool {
 	return p.currentWord == len(p.words)
-}
-
-func (p PlayHandler) isEmptyInput() bool {
-	return len(p.textInput.Value()) == 0
 }
 
 // withCursor indicates whether to render de cursor or not.
