@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
@@ -21,6 +22,7 @@ type PlayHandler struct {
 	words         []string
 	wordsToRender []string
 	currentWord   int
+	seconds       int
 	cmd           tea.Cmd
 }
 
@@ -34,6 +36,7 @@ func NewPlay() *PlayHandler {
 		textInput: ti,
 		words:     getRandomTextToWords(),
 		cmd:       nil,
+		seconds:   -1,
 	}
 
 	p.styleWords()
@@ -65,6 +68,21 @@ func (p *PlayHandler) GetCmd() tea.Cmd {
 	return cmd
 }
 
+func (p *PlayHandler) StartTimer() {
+	timeout := time.After(time.Duration(p.seconds) * time.Second) // 5 seconds max
+
+	for {
+		select {
+		case <-timeout:
+			p.seconds = -2
+			return
+		default:
+		}
+		time.Sleep(time.Second)
+		p.seconds -= 1
+	}
+}
+
 func (p *PlayHandler) Messenger(msg tea.Msg) Action {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -89,6 +107,11 @@ func (p *PlayHandler) Messenger(msg tea.Msg) Action {
 
 			return None
 		}
+	}
+
+	if p.seconds == -1 {
+		p.seconds = 5
+		go p.StartTimer()
 	}
 
 	p.textInput, p.cmd = p.textInput.Update(msg)
@@ -160,7 +183,8 @@ func (p PlayHandler) inputStatus() string {
 
 func (p *PlayHandler) Render() string {
 	return fmt.Sprintf(
-		"%s\n\n%s",
+		"%d\n%s\n\n%s",
+		p.seconds,
 		p.renderWords(),
 		p.textInput.View(),
 	) + "\n"
