@@ -13,7 +13,7 @@ This is a terminal app that lets you to practice your typing.
 - Configure game:
     - By time.
     - By number of words.
-    - Save user data locally.
+- Save user data locally.
 - Show results.
 - Allow to restart the game.
 - Add tests
