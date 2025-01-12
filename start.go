@@ -13,15 +13,15 @@ import (
 // Choices are the posible options in the menu.
 // Actions are the actions corresponding to the choices.
 type StartHandler struct {
-	current int
-	choices []string
-	actions []Action
+	current  int
+	choices  []string
+	statuses []gameStatus
 }
 
 func NewStart() *StartHandler {
 	s := &StartHandler{
-		actions: []Action{ToPlaying, ToQuit},
-		choices: []string{"Play", "Quit"},
+		choices:  []string{"Play", "Quit"},
+		statuses: []gameStatus{Playing, Quit},
 	}
 
 	return s
@@ -31,11 +31,7 @@ func (s StartHandler) Init() tea.Cmd {
 	return nil
 }
 
-func (s StartHandler) GetCmd() tea.Cmd {
-	return nil
-}
-
-func (s *StartHandler) Messenger(msg tea.Msg) Action {
+func (s StartHandler) Messenger(msg tea.Msg) (Handler, tea.Cmd) {
 	n := len(s.choices)
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
@@ -48,16 +44,14 @@ func (s *StartHandler) Messenger(msg tea.Msg) Action {
 				s.current = n - 1
 			}
 		case tea.KeyEnter:
-			return s.actions[s.current]
+			status := s.statuses[s.current]
+			return s, updateStatus(status)
 		case tea.KeyCtrlC:
-			return ToQuit
+			return s, quit
 		}
 	}
-	return None
-}
 
-func (s StartHandler) Render() string {
-	return fmt.Sprintf("%s", s.printList()) + "\n"
+	return s, nil
 }
 
 func (s StartHandler) printList() string {
@@ -73,4 +67,8 @@ func (s StartHandler) printList() string {
 	}
 
 	return result
+}
+
+func (s StartHandler) Render() string {
+	return fmt.Sprintf("%s", s.printList()) + "\n"
 }

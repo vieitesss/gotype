@@ -1,17 +1,10 @@
 package main
 
 import (
+	// "fmt"
+	//
 	tea "github.com/charmbracelet/bubbletea"
 )
-
-// Each Handler belongs to a specific status of the game.
-// Does the necessary stuff while in that status.
-type Handler interface {
-	Messenger(tea.Msg) Action
-	Render() string
-	Init() tea.Cmd
-	GetCmd() tea.Cmd
-}
 
 // The current status of the game.
 type GameStatus int
@@ -25,23 +18,6 @@ const (
 
 	// When ending the game.
 	Quit
-)
-
-// The action to make.
-type Action int
-
-const (
-	// Changing to "Start" status.
-	ToStart Action = iota
-
-	// Changing to "Play" status.
-	ToPlaying
-
-	// Changing to "Quit" status.
-	ToQuit
-
-	// When no action is required, this is returned.
-	None
 )
 
 // The game definition.
@@ -67,22 +43,23 @@ func NewGame() Game {
 }
 
 func (g Game) Init() tea.Cmd {
-	return g.Handlers[Playing].Init()
+	return nil
 }
 
 func (g Game) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	action := g.Handlers[g.Status].Messenger(msg)
-	currentStatus := g.Status
-	cmd := g.Handlers[currentStatus].GetCmd()
-
-	switch action {
-	case ToStart:
-		g.Status = Start
-	case ToPlaying:
-		g.Status = Playing
-	case ToQuit:
-		return g, tea.Quit
+	switch msg := msg.(type) {
+	case GameStatus:
+		switch msg {
+		case Quit:
+			return g, tea.Quit
+		default:
+			g.Status = msg
+			return g, g.Handlers[msg].Init()
+		}
 	}
+
+	updated, cmd := g.Handlers[g.Status].Messenger(msg)
+	g.Handlers[g.Status] = updated
 
 	return g, cmd
 }
