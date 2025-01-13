@@ -15,13 +15,13 @@ import (
 type StartHandler struct {
 	current  int
 	choices  []string
-	statuses []gameStatus
+	statuses []GameStatus
 }
 
 func NewStart() *StartHandler {
 	s := &StartHandler{
 		choices:  []string{"Play", "Quit"},
-		statuses: []gameStatus{Playing, Quit},
+		statuses: []GameStatus{Playing, Quit},
 	}
 
 	return s
