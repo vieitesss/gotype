@@ -10,9 +10,6 @@ import (
 	"github.com/vieitesss/gotype/style"
 )
 
-type textToWrite []string
-type updatedWordToRender string
-
 // Not really stablished yet.
 // TextInput defines the text that the user types.
 // Words are the words the user has to type.
@@ -71,11 +68,11 @@ func (p PlayHandler) Messenger(msg tea.Msg) (Handler, tea.Cmd) {
 
 		return p, cmd
 
-	case updatedWordToRender:
+	case UpdatedWordToRenderMsg:
 		p.wordsToRender[p.currentWord] = string(msg)
 		return p, nil
 
-	case textToWrite:
+	case TextToWriteMsg:
 		// Save words obtained
 		p.words = msg
 
