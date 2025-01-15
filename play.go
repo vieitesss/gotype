@@ -80,10 +80,8 @@ func (p PlayHandler) Messenger(msg tea.Msg) (Handler, tea.Cmd) {
 		p.words = msg
 
 		// Style the words
-		p.wordsToRender = make([]string, len(p.words))
-		for i, w := range p.words {
-			p.wordsToRender[i] = style.Text(w)
-		}
+		p.wordsToRender = style.InitialWordsStyling(p.words)
+
 		return p, nil
 
 	case tea.KeyMsg:
@@ -93,8 +91,7 @@ func (p PlayHandler) Messenger(msg tea.Msg) (Handler, tea.Cmd) {
 			//       may ask for confirmation
 			return p, updateStatus(Start)
 		case tea.KeySpace:
-			// Update the current word to remove the cursor.
-			p.wordsToRender[p.currentWord] = p.updateWord(false)
+			p.updateCurrentWord(false)
 
 			// Go to the next word.
 			p.currentWord++
@@ -116,8 +113,7 @@ func (p PlayHandler) Messenger(msg tea.Msg) (Handler, tea.Cmd) {
 	}
 
 	if len(p.words) > 0 {
-		// Update the current word status whit the current input after a key press.
-		p.wordsToRender[p.currentWord] = p.updateWord(true)
+		p.updateCurrentWord(true)
 	}
 
 	// Update the input.
@@ -128,50 +124,12 @@ func (p PlayHandler) Messenger(msg tea.Msg) (Handler, tea.Cmd) {
 	return p, tea.Batch(cmds...)
 }
 
-func (p PlayHandler) updateWord(addCursor bool) string {
-	input := p.textInput.Value()
-	word := p.words[p.currentWord]
-
-	toRender := p.textStatus(input, p.currentWord)
-
-	if len(input) >= len(word) {
-		return toRender
-	}
-
-	if addCursor {
-		toRender += style.CurrentChar(string(word[len(input)]))
-		if len(word) > len(input)+1 {
-			toRender += style.Text(word[len(input)+1:])
-		}
-	} else {
-		toRender += style.Text(word[len(input):])
-	}
-
-	return toRender
-}
-
-// Gets a text to be checked and the index of the word to be checked with.
-// Returns the text styled accordingly.
-func (p PlayHandler) textStatus(text string, wordIndex int) string {
-	current := p.words[wordIndex]
-	chars := min(len(text), len(current))
-	result := ""
-
-	// Print already written chars
-	for i := 0; i < chars; i++ {
-		if text[i] == current[i] {
-			result += style.Correct(string(current[i]))
-		} else {
-			result += style.Incorrect(string(current[i]))
-		}
-	}
-
-	// Print the excess chars, if there are any.
-	if len(text) > len(current) {
-		result += style.Incorrect(text[len(current):])
-	}
-
-	return result
+func (p *PlayHandler) updateCurrentWord(addCursor bool) {
+	p.wordsToRender[p.currentWord] = style.CompareWithStyle(
+		p.textInput.Value(),
+		p.words[p.currentWord],
+		addCursor,
+	)
 }
 
 func (p PlayHandler) isFinished() bool {
@@ -181,18 +139,21 @@ func (p PlayHandler) isFinished() bool {
 func (p PlayHandler) Render() string {
 	s := ""
 
+	// Timer
 	if !p.timer.Timedout() {
 		s += p.timer.View() + "\n"
 	} else {
 		s += "Time is over!\n"
 	}
 
+	// Words
 	if len(p.wordsToRender) > 0 {
 		s += strings.Join(p.wordsToRender, " ") + "\n"
 	} else {
-		s += "the list is empty"
+		s += "the list of words is empty \n"
 	}
 
+	// Input
 	s += "\n" + p.textInput.View()
 
 	return s
