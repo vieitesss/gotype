@@ -24,7 +24,6 @@ type PlayHandler struct {
 	wordsToRender []string
 	currentWord   int
 	started       bool
-	end           bool
 	seconds       int
 }
 
@@ -62,21 +61,15 @@ func (p PlayHandler) Messenger(msg tea.Msg) (Handler, tea.Cmd) {
 		var cmd tea.Cmd
 		p.timer, cmd = p.timer.Update(msg)
 
-		if p.timer.Timedout() {
-			p.end = true
-		}
-
 		return p, cmd
 
 	case UpdatedWordToRenderMsg:
 		p.wordsToRender[p.currentWord] = string(msg)
+
 		return p, nil
 
 	case TextToWriteMsg:
-		// Save words obtained
 		p.words = msg
-
-		// Style the words
 		p.wordsToRender = style.InitialWordsStyling(p.words)
 
 		return p, nil
@@ -96,11 +89,13 @@ func (p PlayHandler) Messenger(msg tea.Msg) (Handler, tea.Cmd) {
 
 			// TODO: show the results.
 
-			if p.isFinished() {
+			// No more words
+			if p.currentWord == len(p.words) {
 				return p, updateStatus(Quit)
 			}
 
 			return p, nil
+
 		default:
 			if !p.started {
 				p.started = true
@@ -127,10 +122,6 @@ func (p *PlayHandler) updateCurrentWord(addCursor bool) {
 		p.words[p.currentWord],
 		addCursor,
 	)
-}
-
-func (p PlayHandler) isFinished() bool {
-	return p.currentWord == len(p.words)
 }
 
 func (p PlayHandler) Render() string {

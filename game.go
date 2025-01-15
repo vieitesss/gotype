@@ -52,8 +52,10 @@ func (g Game) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.status {
 		case Quit:
 			return g, tea.Quit
+
 		default:
 			g.Status = msg.status
+
 			return g, g.Handlers[msg.status].Init()
 		}
 	}

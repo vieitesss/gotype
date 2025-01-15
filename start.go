@@ -1,8 +1,6 @@
 package main
 
 import (
-	"fmt"
-
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/vieitesss/gotype/style"
 )
@@ -43,32 +41,31 @@ func (s StartHandler) Messenger(msg tea.Msg) (Handler, tea.Cmd) {
 			if s.current < 0 {
 				s.current = n - 1
 			}
+
 		case tea.KeyEnter:
 			status := s.statuses[s.current]
+
 			return s, updateStatus(status)
+
 		case tea.KeyCtrlC:
-			return s, quit
+			return s, updateStatus(Quit)
 		}
 	}
 
 	return s, nil
 }
 
-func (s StartHandler) printList() string {
-	result := ""
+func (s StartHandler) Render() string {
+	res := ""
 
-	for i, c := range s.choices {
-		selector := "  "
+	for i, choice := range s.choices {
 		if i == s.current {
-			selector = " "
+			res += style.MainMenuOptionStyling(" " + choice)
+		} else {
+			res += style.MainMenuOptionStyling(choice)
 		}
-
-		result += fmt.Sprintf("%s%s\n", style.Selector(selector), style.Text(c))
+		res += "\n"
 	}
 
-	return result
-}
-
-func (s StartHandler) Render() string {
-	return fmt.Sprintf("%s", s.printList()) + "\n"
+	return res
 }

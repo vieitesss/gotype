@@ -1,5 +1,17 @@
 package style
 
+import "strings"
+
+func MainMenuOptionStyling(option string) string {
+	parts := strings.Split(option, " ")
+
+	if len(parts) > 1 {
+		return Selector(parts[0]) + " " + Text(parts[1])
+	}
+
+	return "  " + Text(parts[0])
+}
+
 func InitialWordsStyling(words []string) []string {
 	styled := make([]string, len(words))
 
@@ -15,6 +27,7 @@ func CompareWithStyle(source, target string, addCursor bool) string {
 	sourceLen := len(source)
 	targetLen := len(target)
 	minLen := sourceLen
+
 	if sourceLen > targetLen {
 		minLen = targetLen
 	}
