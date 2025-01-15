@@ -6,10 +6,6 @@ import (
 )
 
 // The main menu.
-// For now you can choose between playing or exiting de app.
-// Current indicates currently selected option.
-// Choices are the posible options in the menu.
-// Actions are the actions corresponding to the choices.
 type StartHandler struct {
 	current  int
 	choices  []string
@@ -36,6 +32,7 @@ func (s StartHandler) Messenger(msg tea.Msg) (Handler, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeyDown:
 			s.current = (s.current + 1) % n
+
 		case tea.KeyUp:
 			s.current -= 1
 			if s.current < 0 {

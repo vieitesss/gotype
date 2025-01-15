@@ -17,7 +17,3 @@ func updateStatus(status GameStatus) tea.Cmd {
 func getRandomTextToWords() tea.Msg {
 	return TextToWriteMsg(strings.Split("Hola me llamo Dani", " "))
 }
-
-func quit() tea.Msg {
-	return Quit
-}
