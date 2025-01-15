@@ -10,13 +10,7 @@ import (
 	"github.com/vieitesss/gotype/style"
 )
 
-// Not really stablished yet.
-// TextInput defines the text that the user types.
-// Words are the words the user has to type.
-// WordsToRender are the words the user has to type, but with the corresponding
-// color, depending if the user has typed correctly or not.
-// CurrentWord indicates the word currently being typed.
-// Cmd is the command to execute.
+// Used when playing, typing.
 type PlayHandler struct {
 	textInput     textinput.Model
 	timer         timer.Model

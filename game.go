@@ -1,8 +1,6 @@
 package main
 
 import (
-	// "fmt"
-	//
 	tea "github.com/charmbracelet/bubbletea"
 )
 
@@ -13,23 +11,19 @@ const (
 	// Initial menu.
 	Start GameStatus = iota
 
-	// While the user is plaing, typing.
+	// While the user is playing, typing.
 	Playing
 
 	// When ending the game.
 	Quit
 )
 
-// The game definition.
-// Status defines the current game status.
-// The handlers are a map linking each status with the handler that corresponds
-// to it.
+// Main model
 type Game struct {
 	Status   GameStatus
 	Handlers map[GameStatus]Handler
 }
 
-// Initializes the game.
 func NewGame() Game {
 	g := Game{Status: Start}
 
