@@ -8,7 +8,6 @@ This is a terminal app that lets you to practice your typing.
 
 ### TODO
 
-- style.go to manage all the styling.
 - Some refactoring.
 - Get random words from an API or list.
 - Configure game:
