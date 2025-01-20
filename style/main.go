@@ -3,8 +3,6 @@ package style
 import (
 	"fmt"
 	"strings"
-	"unicode"
-	"unicode/utf8"
 )
 
 func MainMenuOptionStyling(option string) string {
