@@ -1,6 +1,11 @@
 package style
 
-import "strings"
+import (
+	"fmt"
+	"strings"
+	"unicode"
+	"unicode/utf8"
+)
 
 func MainMenuOptionStyling(option string) string {
 	parts := strings.Split(option, " ")
@@ -22,10 +27,12 @@ func InitialWordsStyling(words []string) []string {
 	return styled
 }
 
+// Source is what you guess.
+// Target is what you want.
 func CompareWithStyle(source, target string, addCursor bool) string {
 	toRender := ""
-	sourceLen := len(source)
-	targetLen := len(target)
+	sourceRune, targetRune := []rune(source), []rune(target)
+	sourceLen, targetLen := len(sourceRune), len(targetRune)
 	minLen := sourceLen
 
 	if sourceLen > targetLen {
@@ -33,10 +40,10 @@ func CompareWithStyle(source, target string, addCursor bool) string {
 	}
 
 	for i := 0; i < minLen; i++ {
-		if source[i] == target[i] {
-			toRender += Correct(string(target[i]))
+		if sourceRune[i] == targetRune[i] {
+			toRender += styleWithFunc(targetRune, i, i+1, Correct)
 		} else {
-			toRender += Incorrect(string(target[i]))
+			toRender += styleWithFunc(targetRune, i, i+1, Incorrect)
 		}
 	}
 
@@ -45,18 +52,30 @@ func CompareWithStyle(source, target string, addCursor bool) string {
 	}
 
 	if sourceLen > targetLen {
-		toRender += Incorrect(source[targetLen:])
-		return toRender
+		return toRender + styleWithFunc(sourceRune, targetLen, sourceLen, Incorrect)
 	}
 
-	if addCursor {
-		toRender += CurrentChar(string(target[sourceLen]))
-		if targetLen > sourceLen+1 {
-			toRender += Text(target[sourceLen+1:])
-		}
-	} else {
-		toRender += Text(target[sourceLen:])
+	if !addCursor {
+		return toRender + styleWithFunc(targetRune, sourceLen, targetLen, Text)
+	}
+
+	toRender += styleWithFunc(targetRune, sourceLen, sourceLen+1, Cursor)
+
+	if targetLen > sourceLen+1 {
+		toRender += styleWithFunc(targetRune, sourceLen+1, targetLen, Text)
 	}
 
 	return toRender
+}
+
+// Returns the text styled and the number of characters checked.
+func styleWithFunc(text []rune, start, finish int, callback func(string) string) string {
+	if start >= finish {
+		panic(fmt.Sprintf("[ERROR] main.go:styleWithFunc - %d (start) should be",
+			"smaller than %d (finish).", start, finish))
+	}
+
+	toRender := text[start:finish]
+
+	return callback(string(toRender))
 }
