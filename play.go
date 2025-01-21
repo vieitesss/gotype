@@ -41,6 +41,7 @@ type PlayHandler struct {
 	timer         timer.Model
 	words         []string
 	wordsToRender []string
+	lastIncorrect []string
 	currentWord   int
 	started       bool
 	seconds       int
@@ -110,6 +111,15 @@ func (p PlayHandler) Messenger(msg tea.Msg) (Handler, tea.Cmd) {
 		case tea.KeySpace:
 			p.updateCurrentWord(false)
 
+			current := p.textInput.Value()
+			if current != p.words[p.currentWord] {
+				// Keep track of last incorrect words.
+				p.lastIncorrect = append(p.lastIncorrect, current)
+			} else if len(p.lastIncorrect) > 0 {
+				// Empty lastIncorrect if a correct word is written.
+				p.lastIncorrect = nil
+			}
+
 			// Go to the next word.
 			p.currentWord++
 			p.textInput.Reset()
@@ -122,6 +132,17 @@ func (p PlayHandler) Messenger(msg tea.Msg) (Handler, tea.Cmd) {
 			}
 
 			return p, nil
+
+		case tea.KeyBackspace:
+			lastLen := len(p.lastIncorrect)
+			if len(p.textInput.Value()) == 0 && lastLen > 0 {
+				p.updateCurrentWord(false)
+				p.textInput.SetValue(p.lastIncorrect[lastLen-1])
+				p.lastIncorrect = p.lastIncorrect[:lastLen-1]
+				p.currentWord--
+
+				return p, nil
+			}
 
 		default:
 			if !p.started {
