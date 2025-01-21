@@ -2,17 +2,14 @@ package style
 
 import (
 	"fmt"
-	"strings"
 )
 
-func MainMenuOptionStyling(option string) string {
-	parts := strings.Split(option, " ")
-
-	if len(parts) > 1 {
-		return Selector(parts[0]) + " " + Text(parts[1])
+func MainMenuOptionStyling(item string, itemIndex, listIndex int) string {
+	if itemIndex == listIndex {
+		return Selector("> " + item)
 	}
 
-	return "  " + Text(parts[0])
+	return Text("  " + item)
 }
 
 func InitialWordsStyling(words []string) []string {
