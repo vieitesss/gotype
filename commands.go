@@ -11,10 +11,12 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-//go:embed static/es_500.txt
-var fileData []byte
-var fileWords []string
-var numberOfWords = 20
+var (
+	//go:embed static/es_500.txt
+	fileData      []byte
+	fileWords     []string
+	numberOfWords = 20
+)
 
 func updateStatus(status GameStatus) tea.Cmd {
 	return func() tea.Msg {

@@ -4,34 +4,40 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-const white = lipgloss.Color("#dddddd")
-const green = lipgloss.Color("#accca4")
-const red = lipgloss.Color("#bf9ac1")
+const (
+	white = lipgloss.Color("#dddddd")
+	green = lipgloss.Color("#accca4")
+	red   = lipgloss.Color("#bf9ac1")
+	lightGrey = lipgloss.Color("#333333")
+)
 
-var normalStyle = lipgloss.NewStyle()
-var boldStyle = lipgloss.NewStyle().Bold(true)
+var (
+	NormalStyle = lipgloss.NewStyle()
+	BoldStyle   = lipgloss.NewStyle().Bold(true)
 
-var textStyle = boldStyle.Foreground(white)
-var correctStyle = boldStyle.Foreground(green)
-var incorrectStyle = boldStyle.Foreground(red).Underline(true)
-var selectorStyle = normalStyle.Foreground(green)
+	TextStyle      = BoldStyle.Foreground(white)
+	MenuStyle      = TextStyle.Background(lightGrey).PaddingLeft(1).PaddingRight(1)
+	CorrectStyle   = BoldStyle.Foreground(green)
+	IncorrectStyle = BoldStyle.Foreground(red).Underline(true)
+	SelectorStyle  = NormalStyle.Foreground(green)
+)
 
 func Text(text string) string {
-	return textStyle.Render(text)
+	return TextStyle.Render(text)
 }
 
 func Selector(text string) string {
-	return correctStyle.Render(text)
+	return CorrectStyle.Render(text)
 }
 
 func Correct(text string) string {
-	return correctStyle.Render(text)
+	return CorrectStyle.Render(text)
 }
 
 func Incorrect(text string) string {
-	return incorrectStyle.Render(text)
+	return IncorrectStyle.Render(text)
 }
 
 func Cursor(text string) string {
-	return textStyle.Underline(true).Render(text)
+	return TextStyle.Underline(true).Render(text)
 }

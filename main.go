@@ -7,7 +7,12 @@ import (
 )
 
 func main() {
-	if _, err := tea.NewProgram(NewGame()).Run(); err != nil {
+	program := tea.NewProgram(
+		NewGame(),
+		tea.WithAltScreen(),
+	)
+
+	if _, err := program.Run(); err != nil {
 		os.Exit(1)
 	}
 }
