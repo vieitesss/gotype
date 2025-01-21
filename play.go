@@ -4,14 +4,39 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/bubbles/help"
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/timer"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/vieitesss/gotype/style"
 )
 
+type playKeyMaps struct {
+	Quit key.Binding
+}
+
+func (k playKeyMaps) ShortHelp() []key.Binding {
+	return []key.Binding{k.Quit}
+}
+
+func (k playKeyMaps) FullHelp() [][]key.Binding {
+	return [][]key.Binding{
+		{k.Quit},
+	}
+}
+
+var playKeys = playKeyMaps{
+	Quit: key.NewBinding(
+		key.WithKeys("esc", "ctrl+c"),
+		key.WithHelp("esc/C-c", "quit"),
+	),
+}
+
 // Used when playing, typing.
 type PlayHandler struct {
+	keys          playKeyMaps
+	help          help.Model
 	textInput     textinput.Model
 	timer         timer.Model
 	words         []string
@@ -21,9 +46,11 @@ type PlayHandler struct {
 	seconds       int
 }
 
-var seconds = 5
-var tiCharLimit = 20
-var tiWidth = 20
+var (
+	seconds     = 5
+	tiCharLimit = 20
+	tiWidth     = 20
+)
 
 func NewPlay() *PlayHandler {
 	ti := textinput.New()
@@ -32,6 +59,8 @@ func NewPlay() *PlayHandler {
 	ti.Width = tiWidth
 
 	p := &PlayHandler{
+		keys:      playKeys,
+		help:      help.New(),
 		textInput: ti,
 		seconds:   seconds,
 		timer:     timer.New(time.Duration(seconds) * time.Second),
@@ -69,11 +98,15 @@ func (p PlayHandler) Messenger(msg tea.Msg) (Handler, tea.Cmd) {
 		return p, nil
 
 	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyCtrlC, tea.KeyEsc:
+		// For key maps.
+		switch {
+		case key.Matches(msg, p.keys.Quit):
 			// TODO: handle timer and anything needed,
 			//       may ask for confirmation
 			return p, updateStatus(Start)
+		}
+
+		switch msg.Type {
 		case tea.KeySpace:
 			p.updateCurrentWord(false)
 
@@ -136,7 +169,10 @@ func (p PlayHandler) Render() string {
 	}
 
 	// Input
-	s += "\n" + p.textInput.View()
+	s += "\n" + p.textInput.View() + "\n"
+
+	// Help
+	s += strings.Repeat("\n", 3) + "  " + p.help.View(p.keys)
 
 	return s
 }
