@@ -102,6 +102,10 @@ func (p PlayHandler) Messenger(msg tea.Msg) (Handler, tea.Cmd) {
 		return p, nil
 
 	case NextWordMsg:
+		if p.currentWord+1 == len(p.words) {
+			return p, updateStatus(Quit)
+		}
+
 		p.currentWord++
 		p.textInput.Reset()
 
