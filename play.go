@@ -46,10 +46,14 @@ type PlayHandler struct {
 	wordsToRender []string
 	lastIncorrect []string
 	currentWord   int
+	currentLine   int
 	started       bool
 	vpReady       bool
 	seconds       int
 	margin        int
+	lineWidth     int
+	wordsPerLine  []int
+	wordsWritten  int
 }
 
 var (
@@ -96,7 +100,8 @@ func (p PlayHandler) Messenger(msg tea.Msg) (Handler, tea.Cmd) {
 	case UpdatedWordToRenderMsg:
 		p.wordsToRender[p.currentWord] = string(msg)
 		if p.vpReady {
-			p.viewport.SetContent(strings.Join(p.wordsToRender, " "))
+			startWord := p.firstWordFromLine(p.currentLine)
+			p.viewport.SetContent(strings.Join(p.wordsToRender[startWord:], " "))
 		}
 
 		return p, nil
@@ -117,24 +122,38 @@ func (p PlayHandler) Messenger(msg tea.Msg) (Handler, tea.Cmd) {
 		p.textInput.SetValue(p.lastIncorrect[lastLen-1])
 		p.lastIncorrect = p.lastIncorrect[:lastLen-1]
 
+		if p.wordsWritten > 0 {
+			p.wordsWritten--
+		} else {
+			p.currentLine--
+			p.wordsWritten = p.wordsPerLine[p.currentLine] - 1
+		}
+
 	case TextToWriteMsg:
 		p.words = msg
 		p.wordsToRender = style.InitialWordsStyling(p.words)
+		if p.lineWidth > 0 {
+			p.setWordsPerLine()
+		}
 
 		return p, nil
 
 	case tea.WindowSizeMsg:
 		p.margin = int(math.Floor(float64(msg.Width) * 0.3 / 2))
 		p.textInput.PromptStyle = style.NormalStyle.PaddingLeft(p.margin)
+		p.lineWidth = msg.Width - p.margin*2
 
 		if !p.vpReady {
-			p.viewport = viewport.New(msg.Width, 4)
+			p.viewport = viewport.New(msg.Width, 3)
 			p.viewport.Style = style.NormalStyle.Padding(0, p.margin)
 			p.viewport.SetContent(strings.Join(p.wordsToRender, " "))
-			p.viewport.YPosition = 10
 			p.vpReady = true
 		} else {
 			p.viewport.Width = msg.Width
+			p.viewport.Style = style.NormalStyle.Padding(0, p.margin)
+			if len(p.wordsPerLine) > 0 {
+				p.setWordsPerLine()
+			}
 		}
 
 	case tea.KeyMsg:
@@ -150,6 +169,7 @@ func (p PlayHandler) Messenger(msg tea.Msg) (Handler, tea.Cmd) {
 		case tea.KeySpace:
 			var cmds []tea.Cmd
 			msg := p.updateCurrentWord(p.currentWord, false)()
+
 			switch updated := msg.(type) {
 			case UpdatedWordToRenderMsg:
 				p.wordsToRender[p.currentWord] = string(updated)
@@ -175,6 +195,12 @@ func (p PlayHandler) Messenger(msg tea.Msg) (Handler, tea.Cmd) {
 			// No more words
 			if p.currentWord == len(p.words) {
 				cmds = append(cmds, updateStatus(Quit))
+			}
+
+			p.wordsWritten += 1
+			if p.wordsWritten == p.wordsPerLine[p.currentLine] {
+				p.currentLine += 1
+				p.wordsWritten = 0
 			}
 
 			return p, tea.Batch(cmds...)
@@ -207,6 +233,46 @@ func (p PlayHandler) Messenger(msg tea.Msg) (Handler, tea.Cmd) {
 	return p, tea.Batch(cmds...)
 }
 
+func (p *PlayHandler) setWordsPerLine() {
+	if p.lineWidth < 1 {
+		panic("[ERROR] play.go:setWordsPerLine lineWidth is not set yet.")
+	}
+
+	chars := 0
+	lineWords := 0
+	p.wordsPerLine = make([]int, 0)
+
+	for _, w := range p.words {
+		wordLen := len([]rune(w))
+		chars += wordLen
+
+		if chars > p.lineWidth {
+			p.wordsPerLine = append(p.wordsPerLine, lineWords)
+			lineWords = 1
+			chars = wordLen
+		} else {
+			lineWords += 1
+		}
+		chars += 1 // The space.
+	}
+
+	p.wordsPerLine = append(p.wordsPerLine, lineWords)
+}
+
+func (p PlayHandler) firstWordFromLine(line int) int {
+	if line == 0 && line == 1 {
+		return 0
+	}
+
+	index := 0
+
+	for i := 0; i < line-1; i++ {
+		index += p.wordsPerLine[i]
+	}
+
+	return index
+}
+
 func (p *PlayHandler) updateCurrentWord(index int, addCursor bool) tea.Cmd {
 	return func() tea.Msg {
 		styled := style.CompareWithStyle(
@@ -231,8 +297,9 @@ func (p PlayHandler) Render() string {
 	s := ""
 
 	// Timer
+	s += strings.Repeat(" ", p.margin)
 	if !p.timer.Timedout() {
-		s += strings.Repeat(" ", p.margin) + p.timer.View() + "\n"
+		s += p.timer.View() + "\n"
 	} else {
 		s += "Time is over!\n"
 	}
