@@ -13,3 +13,6 @@ type TextToWriteMsg []string
 // Thrown when the current word being typed is ready to be rendered.
 // It represents word to be typed styled depending on the input.
 type UpdatedWordToRenderMsg string
+
+type NextWordMsg struct{}
+type PrevWordMsg struct{}

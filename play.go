@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math"
 	"strings"
 	"time"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/timer"
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/vieitesss/gotype/style"
 )
@@ -38,13 +40,16 @@ type PlayHandler struct {
 	keys          playKeyMaps
 	help          help.Model
 	textInput     textinput.Model
+	viewport      viewport.Model
 	timer         timer.Model
 	words         []string
 	wordsToRender []string
 	lastIncorrect []string
 	currentWord   int
 	started       bool
+	vpReady       bool
 	seconds       int
+	margin        int
 }
 
 var (
@@ -73,6 +78,7 @@ func NewPlay() *PlayHandler {
 func (p PlayHandler) Init() tea.Cmd {
 	return tea.Batch(
 		getRandomTextToWords,
+		tea.WindowSize(),
 		textinput.Blink,
 	)
 }
@@ -89,14 +95,43 @@ func (p PlayHandler) Messenger(msg tea.Msg) (Handler, tea.Cmd) {
 
 	case UpdatedWordToRenderMsg:
 		p.wordsToRender[p.currentWord] = string(msg)
+		if p.vpReady {
+			p.viewport.SetContent(strings.Join(p.wordsToRender, " "))
+		}
 
 		return p, nil
+
+	case NextWordMsg:
+		p.currentWord++
+		p.textInput.Reset()
+
+		return p, nil
+
+	case PrevWordMsg:
+		p.currentWord--
+		lastLen := len(p.lastIncorrect)
+		p.textInput.SetValue(p.lastIncorrect[lastLen-1])
+		p.lastIncorrect = p.lastIncorrect[:lastLen-1]
 
 	case TextToWriteMsg:
 		p.words = msg
 		p.wordsToRender = style.InitialWordsStyling(p.words)
 
 		return p, nil
+
+	case tea.WindowSizeMsg:
+		p.margin = int(math.Floor(float64(msg.Width) * 0.3 / 2))
+		p.textInput.PromptStyle = style.NormalStyle.PaddingLeft(p.margin)
+
+		if !p.vpReady {
+			p.viewport = viewport.New(msg.Width, 4)
+			p.viewport.Style = style.NormalStyle.Padding(0, p.margin)
+			p.viewport.SetContent(strings.Join(p.wordsToRender, " "))
+			p.viewport.YPosition = 10
+			p.vpReady = true
+		} else {
+			p.viewport.Width = msg.Width
+		}
 
 	case tea.KeyMsg:
 		// For key maps.
@@ -109,7 +144,15 @@ func (p PlayHandler) Messenger(msg tea.Msg) (Handler, tea.Cmd) {
 
 		switch msg.Type {
 		case tea.KeySpace:
-			p.updateCurrentWord(false)
+			var cmds []tea.Cmd
+			msg := p.updateCurrentWord(p.currentWord, false)()
+			switch updated := msg.(type) {
+			case UpdatedWordToRenderMsg:
+				p.wordsToRender[p.currentWord] = string(updated)
+
+			default:
+				panic("[ERROR] play.go:Update updated type should be UpdatedWordToRenderMsg")
+			}
 
 			current := p.textInput.Value()
 			if current != p.words[p.currentWord] {
@@ -121,27 +164,22 @@ func (p PlayHandler) Messenger(msg tea.Msg) (Handler, tea.Cmd) {
 			}
 
 			// Go to the next word.
-			p.currentWord++
-			p.textInput.Reset()
+			cmds = append(cmds, p.nextWord)
 
 			// TODO: show the results.
 
 			// No more words
 			if p.currentWord == len(p.words) {
-				return p, updateStatus(Quit)
+				cmds = append(cmds, updateStatus(Quit))
 			}
 
-			return p, nil
+			return p, tea.Batch(cmds...)
 
 		case tea.KeyBackspace:
-			lastLen := len(p.lastIncorrect)
-			if len(p.textInput.Value()) == 0 && lastLen > 0 {
-				p.updateCurrentWord(false)
-				p.textInput.SetValue(p.lastIncorrect[lastLen-1])
-				p.lastIncorrect = p.lastIncorrect[:lastLen-1]
-				p.currentWord--
+			if len(p.textInput.Value()) == 0 && len(p.lastIncorrect) > 0 {
+				p.wordsToRender[p.currentWord] = style.Text(p.words[p.currentWord])
 
-				return p, nil
+				return p, p.prevWord
 			}
 
 		default:
@@ -153,23 +191,36 @@ func (p PlayHandler) Messenger(msg tea.Msg) (Handler, tea.Cmd) {
 	}
 
 	if len(p.words) > 0 {
-		p.updateCurrentWord(true)
+		cmds = append(cmds, p.updateCurrentWord(p.currentWord, true))
 	}
 
-	// Update the input.
-	updatedTextInput, cmd := p.textInput.Update(msg)
-	p.textInput = updatedTextInput
+	var cmd tea.Cmd
+	p.textInput, cmd = p.textInput.Update(msg)
+	cmds = append(cmds, cmd)
+	p.viewport, cmd = p.viewport.Update(msg)
 	cmds = append(cmds, cmd)
 
 	return p, tea.Batch(cmds...)
 }
 
-func (p *PlayHandler) updateCurrentWord(addCursor bool) {
-	p.wordsToRender[p.currentWord] = style.CompareWithStyle(
-		p.textInput.Value(),
-		p.words[p.currentWord],
-		addCursor,
-	)
+func (p *PlayHandler) updateCurrentWord(index int, addCursor bool) tea.Cmd {
+	return func() tea.Msg {
+		styled := style.CompareWithStyle(
+			p.textInput.Value(),
+			p.words[index],
+			addCursor,
+		)
+
+		return UpdatedWordToRenderMsg(styled)
+	}
+}
+
+func (p *PlayHandler) nextWord() tea.Msg {
+	return NextWordMsg{}
+}
+
+func (p *PlayHandler) prevWord() tea.Msg {
+	return PrevWordMsg{}
 }
 
 func (p PlayHandler) Render() string {
@@ -177,17 +228,13 @@ func (p PlayHandler) Render() string {
 
 	// Timer
 	if !p.timer.Timedout() {
-		s += p.timer.View() + "\n"
+		s += strings.Repeat(" ", p.margin) + p.timer.View() + "\n"
 	} else {
 		s += "Time is over!\n"
 	}
 
 	// Words
-	if len(p.wordsToRender) > 0 {
-		s += strings.Join(p.wordsToRender, " ") + "\n"
-	} else {
-		s += "the list of words is empty \n"
-	}
+	s += p.viewport.View() + "\n"
 
 	// Input
 	s += "\n" + p.textInput.View() + "\n"
