@@ -77,18 +77,40 @@ func (p PlayHandler) Messenger(msg tea.Msg) (Handler, tea.Cmd) {
 		return p, nil
 
 	case NextWordMsg:
+		// No more words
 		if p.currentWord+1 == len(p.words) {
 			return p, updateStatus(Quit)
 		}
 
+		// Remove cursor from current word.
+		updatedMsg := p.updateWordStyle(p.currentWord, false)()
+
+		switch updated := updatedMsg.(type) {
+		case UpdatedWordToRenderMsg:
+			p.wordsToRender[p.currentWord] = string(updated)
+
+		default:
+			panic("[ERROR] play.go:NextWordMsg updated type should be UpdatedWordToRenderMsg")
+		}
+
+		// Next word.
 		p.currentWord++
 		p.textInput.Reset()
 
 		return p, nil
 
 	case PrevWordMsg:
-		p.currentWord--
+		// Make sure to throw this message when the previous word was written incorrectly.
 		lastLen := len(p.lastIncorrect)
+		if lastLen == 0 {
+			panic("[ERROR] play.go:PrevWordMsg There are no previous incorrect words.")
+		}
+
+		// Normal style to current word.
+		p.wordsToRender[p.currentWord] = style.Text(p.words[p.currentWord])
+
+		// Previous word.
+		p.currentWord--
 		p.textInput.SetValue(p.lastIncorrect[lastLen-1])
 		p.lastIncorrect = p.lastIncorrect[:lastLen-1]
 
@@ -122,15 +144,6 @@ func (p PlayHandler) Messenger(msg tea.Msg) (Handler, tea.Cmd) {
 		switch msg.Type {
 		case tea.KeySpace:
 			var cmds []tea.Cmd
-			msg := p.updateCurrentWordStyle(p.currentWord, false)()
-
-			switch updated := msg.(type) {
-			case UpdatedWordToRenderMsg:
-				p.wordsToRender[p.currentWord] = string(updated)
-
-			default:
-				panic("[ERROR] play.go:Update updated type should be UpdatedWordToRenderMsg")
-			}
 
 			p.checkIfIncorrect(p.currentWord)
 
@@ -150,8 +163,6 @@ func (p PlayHandler) Messenger(msg tea.Msg) (Handler, tea.Cmd) {
 
 		case tea.KeyBackspace:
 			if len(p.textInput.Value()) == 0 && len(p.lastIncorrect) > 0 {
-				p.wordsToRender[p.currentWord] = style.Text(p.words[p.currentWord])
-
 				return p, p.prevWord
 			}
 
@@ -164,7 +175,7 @@ func (p PlayHandler) Messenger(msg tea.Msg) (Handler, tea.Cmd) {
 	}
 
 	if len(p.words) > 0 {
-		cmds = append(cmds, p.updateCurrentWordStyle(p.currentWord, true))
+		cmds = append(cmds, p.updateWordStyle(p.currentWord, true))
 	}
 
 	var cmd tea.Cmd
@@ -187,7 +198,7 @@ func (p *PlayHandler) checkIfIncorrect(index int) {
 	}
 }
 
-func (p *PlayHandler) updateCurrentWordStyle(index int, addCursor bool) tea.Cmd {
+func (p *PlayHandler) updateWordStyle(index int, addCursor bool) tea.Cmd {
 	return func() tea.Msg {
 		styled := style.CompareWithStyle(
 			p.textInput.Value(),
