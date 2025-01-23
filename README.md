@@ -8,12 +8,10 @@ This is a terminal app that lets you to practice your typing.
 
 ### TODO
 
-- Some refactoring.
-- Get random words from an API or list.
+- Allow to restart the game.
+- Show results.
+- Save user data locally.
 - Configure game:
     - By time.
     - By number of words.
-- Save user data locally.
-- Show results.
-- Allow to restart the game.
 - Add tests
